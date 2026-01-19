@@ -95,7 +95,6 @@ module Platformer
       if grounded?(level)
         @vel_y = JUMP_SPEED
         @has_double_jumped = false
-
       elsif double_jump_active? && !@has_double_jumped
         @vel_y = JUMP_SPEED
         @has_double_jumped = true
@@ -145,35 +144,41 @@ module Platformer
       @x = new_x unless collides_rect?(new_x, @y, level)
     end
 
-def handle_vertical(level)
-  new_y = @y + @vel_y
+    def handle_vertical(level)
+      new_y = @y + @vel_y
 
-  if @vel_y >= 0
-    # Falling or apex
-    if collides_rect?(@x, new_y, level)
-      tile_y = ((new_y + PLAYER_H) / Level::TILE_SIZE) * Level::TILE_SIZE
-      @y = tile_y - PLAYER_H
-      @vel_y = 0
-    else
-      @y = new_y
-    end
-  else
-    # Jumping upward
-    if collides_rect?(@x, new_y, level)
-      tile_y = (new_y / Level::TILE_SIZE) * Level::TILE_SIZE
-      @y = tile_y
-      @vel_y = 0
-    else
-      @y = new_y
-    end
-  end
+      if @vel_y >= 0
+        # Falling or apex
+        if collides_rect?(@x, new_y, level)
+          # Snap to the top of the tile we hit
+tile_row = ((new_y + PLAYER_H) / Level::TILE_SIZE).floor
+tile_row -= 1   
+ground_y = tile_row * Level::TILE_SIZE
+@y = ground_y - PLAYER_H
+@vel_y = 0
 
-  @vel_y += GRAVITY
+        else
+          @y = new_y
+        end
+      else
+        # Moving upward (jumping)
+        if collides_rect?(@x, new_y, level)
+          # Snap just below the ceiling tile we hit
+          tile_row = (new_y / Level::TILE_SIZE).floor
+          ceiling_bottom = (tile_row + 1) * Level::TILE_SIZE
+          @y = ceiling_bottom
+          @vel_y = 0
+        else
+          @y = new_y
+        end
+      end
+
+      @vel_y += GRAVITY
+    end
+
+def grounded?(level)
+  collides_rect?(@x, @y + PLAYER_H + 1, level)
 end
-
-    def grounded?(level)
-      collides_rect?(@x, @y + PLAYER_H, level)
-    end
 
     def collides_rect?(new_x, new_y, level)
       left   = new_x / Level::TILE_SIZE
