@@ -11,8 +11,9 @@ module Platformer
       @width = @rows.first.size
       @background = background
       @victory_tile = find_tile('V')
-      @respawn_timers = {} # for power-ups
+      @respawn_timers = {}
       @total_stars_initial = @rows.sum { |row| row.count('*') }
+      load_sprites
     end
 
     def self.load(path)
@@ -24,7 +25,7 @@ module Platformer
 
     def solid_tile?(tx, ty)
       return false if tx < 0 || ty < 0 || tx >= @width || ty >= @height
-      ['#','1','2','3'].include?(@rows[ty][tx])
+      @wall_sprites.key?(@rows[ty][tx])
     end
 
     def find_tile(char)
@@ -42,21 +43,23 @@ module Platformer
     def victory_at?(px, py)
       return false unless @victory_tile
       vx, vy = @victory_tile
-      rect_overlap?(px, py, TILE_SIZE, TILE_SIZE, vx * TILE_SIZE, vy * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+      rect_overlap?(px, py, TILE_SIZE, TILE_SIZE,
+                    vx * TILE_SIZE, vy * TILE_SIZE, TILE_SIZE, TILE_SIZE)
     end
 
     def checkpoint_at?(px, py)
       tx = px / TILE_SIZE
       ty = py / TILE_SIZE
       return false if ty < 0 || ty >= @rows.size || tx < 0 || tx >= @rows[ty].size
-      @rows[ty][tx] == 'C'
+      @rows[ty][tx] == 'c'
     end
 
     def collect_powerup_at?(px, py)
       tx = px / TILE_SIZE
       ty = py / TILE_SIZE
       return false if ty < 0 || ty >= @rows.size || tx < 0 || tx >= @rows[ty].size
-      if @rows[ty][tx] == 'D'
+
+      if @rows[ty][tx] == 'd'
         @rows[ty][tx] = '.'
         @respawn_timers[[tx, ty]] = Gosu.milliseconds + 5_000
         return true
@@ -69,7 +72,7 @@ module Platformer
       @respawn_timers.each do |pos, time|
         if now >= time
           tx, ty = pos
-          @rows[ty][tx] = 'D'
+          @rows[ty][tx] = 'd'
           @respawn_timers.delete(pos)
         end
       end
@@ -79,6 +82,7 @@ module Platformer
       tx = px / TILE_SIZE
       ty = py / TILE_SIZE
       return false if ty < 0 || ty >= @rows.size || tx < 0 || tx >= @rows[ty].size
+
       if @rows[ty][tx] == '*'
         @rows[ty][tx] = '.'
         return true
@@ -93,7 +97,9 @@ module Platformer
     def draw_background(screen_w, screen_h)
       if @background
         @bg_image ||= Gosu::Image.new("assets/backgrounds/#{@background}", tileable: true)
-        @bg_image.draw(0, 0, 0, screen_w.to_f/@bg_image.width, screen_h.to_f/@bg_image.height)
+        @bg_image.draw(0, 0, 0,
+                       screen_w.to_f / @bg_image.width,
+                       screen_h.to_f / @bg_image.height)
       else
         Gosu.draw_rect(0, 0, screen_w, screen_h, Gosu::Color::CYAN)
       end
@@ -105,33 +111,16 @@ module Platformer
       last_tx  = [(camera_x + screen_w) / TILE_SIZE + 1, @width].min
       last_ty  = [(camera_y + screen_h) / TILE_SIZE + 1, @height].min
 
-      @wall_sprites ||= {
-        '#' => Gosu::Image.new("assets/wall.png"),
-        '1' => Gosu::Image.new("assets/wall1.png"),
-        '2' => Gosu::Image.new("assets/wall2.png"),
-        '3' => Gosu::Image.new("assets/wall3.png")
-      }
-
       (first_ty...last_ty).each do |ty|
         (first_tx...last_tx).each do |tx|
           tile = @rows[ty][tx]
           x = tx * TILE_SIZE - camera_x
           y = ty * TILE_SIZE - camera_y
-          case tile
-          when '#','1','2','3'
+
+          if @wall_sprites.key?(tile)
             @wall_sprites[tile].draw(x, y, 1)
-          when 'V'
-            @victory_sprite ||= Gosu::Image.new("assets/victory.png")
-            @victory_sprite.draw(x, y, 1)
-          when 'C'
-            @checkpoint_sprite ||= Gosu::Image.new("assets/checkpoint.png")
-            @checkpoint_sprite.draw(x, y, 1)
-          when 'D'
-            @powerup_sprite ||= Gosu::Image.new("assets/double_jump.png")
-            @powerup_sprite.draw(x, y, 1)
-          when '*'
-            @star_sprite ||= Gosu::Image.new("assets/star.png")
-            @star_sprite.draw(x, y, 1)
+          elsif @tile_sprites.key?(tile)
+            @tile_sprites[tile].draw(x, y, 1)
           end
         end
       end
@@ -139,9 +128,39 @@ module Platformer
 
     private
 
+def load_sprites
+  @wall_sprites ||= Dir["assets/walls/*.png"].each_with_object({}) do |path, hash|
+    filename = File.basename(path, ".png")   # "wall10"
+    index_str = filename.sub("wall", "")     # "", "1", "10"
+
+    # Special case: wall.png → '#'
+    if index_str == ""
+      key = "#"
+    else
+      index = index_str.to_i
+
+      key =
+        if index <= 9
+          index.to_s                      # "1".."9"
+        else
+          (index - 10 + 'A'.ord).chr      # 10→A, 11→B, 12→C...
+        end
+    end
+
+    hash[key] = Gosu::Image.new(path)
+  end
+
+  @tile_sprites ||= {
+    'V' => Gosu::Image.new("assets/victory.png"),
+    'c' => Gosu::Image.new("assets/checkpoint.png"),
+    'd' => Gosu::Image.new("assets/double_jump.png"),
+    '*' => Gosu::Image.new("assets/star.png")
+  }
+end
+
     def rect_overlap?(x1, y1, w1, h1, x2, y2, w2, h2)
-      !(x1 + w1 <= x2 || x1 >= x2 + w2 || y1 + h1 <= y2 || y1 >= y2 + h2)
+      !(x1 + w1 <= x2 || x1 >= x2 + w2 ||
+        y1 + h1 <= y2 || y1 >= y2 + h2)
     end
   end
 end
-

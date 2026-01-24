@@ -1,0 +1,37 @@
+{
+  "level1.txt": {
+    "time": 13.91,
+    "stars": 4,
+    "total_stars": 4
+  },
+  "level2.txt": {
+    "time": 53.42,
+    "stars": 13,
+    "total_stars": 13
+  },
+  "level3.txt": {
+    "time": 10.13,
+    "stars": 3,
+    "total_stars": 3
+  },
+  "level4.txt": {
+    "time": 50.72,
+    "stars": 9,
+    "total_stars": 10
+  },
+  "level5.txt": {
+    "time": 20.78,
+    "stars": 4,
+    "total_stars": 4
+  },
+  "level7.txt": {
+    "time": 3.24,
+    "stars": 3,
+    "total_stars": 3
+  },
+  "level8.txt": {
+    "time": 10.34,
+    "stars": 1,
+    "total_stars": 1
+  }
+}

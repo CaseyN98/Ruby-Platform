@@ -1,15 +1,16 @@
 require "chingu"
+require_relative "states/title_state"
 require_relative "states/menu_state"
 
 class GameWindow < Chingu::Window
   def initialize
-    super(640, 480, false)
-    self.caption = "Platformer"
+    super(1024, 768, false)
+    self.caption = "Seek The Stars!"
   end
 
   def setup
-    # Start with the menu state
-    push_game_state(MenuState)
+    # Start with the title fade‑in screen
+    push_game_state(TitleState)
   end
 end
 

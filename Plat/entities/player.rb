@@ -36,9 +36,6 @@ module Platformer
       @has_double_jumped = false
     end
 
-    # -------------------------
-    # UPDATE / DRAW
-    # -------------------------
     def update(level)
       handle_horizontal(level)
       handle_vertical(level)
@@ -86,9 +83,6 @@ module Platformer
       end
     end
 
-    # -------------------------
-    # GAME LOGIC API
-    # -------------------------
     def jump(level)
       if grounded?(level)
         @vel_y = JUMP_SPEED
@@ -101,8 +95,8 @@ module Platformer
 
     def dead?(level)
       @x < 0 ||
-        @x > level.width * Platformer::Level::TILE_SIZE ||
-        @y > level.height * Platformer::Level::TILE_SIZE
+        @x > level.width * Level::TILE_SIZE ||
+        @y > level.height * Level::TILE_SIZE
     end
 
     def victory?(level)
@@ -119,9 +113,6 @@ module Platformer
       remaining > 0 ? (remaining / 1000.0).round : 0
     end
 
-    # -------------------------
-    # INTERNALS
-    # -------------------------
     private
 
     def double_jump_active?
@@ -145,26 +136,25 @@ module Platformer
       @x = new_x unless collides_rect?(new_x, @y, level)
     end
 
-def handle_vertical(level)
-  @vel_y += GRAVITY unless grounded?(level)
+    def handle_vertical(level)
+      @vel_y += GRAVITY unless grounded?(level)
 
-  # Move one pixel at a time for perfect collision
-  step = @vel_y < 0 ? -1 : 1
+      step = @vel_y < 0 ? -1 : 1
 
-  @vel_y.abs.times do
-    new_y = @y + step
-    if collides_rect?(@x, new_y, level)
-      @vel_y = 0
-      break
-    else
-      @y = new_y
+      @vel_y.abs.times do
+        new_y = @y + step
+        if collides_rect?(@x, new_y, level)
+          @vel_y = 0
+          break
+        else
+          @y = new_y
+        end
+      end
     end
-  end
-end
 
-def grounded?(level)
-  collides_rect?(@x, @y + 1, level)
-end
+    def grounded?(level)
+      collides_rect?(@x, @y + 1, level)
+    end
 
     def collides_rect?(new_x, new_y, level)
       ts = Level::TILE_SIZE
